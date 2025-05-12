@@ -1,3 +1,10 @@
+# Ignore a "miscellaneous documents" folder
+misc-docs/
+
+# For now, ignore the data-* folders
+data-raw/
+data-processed/
+
 # History files
 .Rhistory
 .Rapp.history

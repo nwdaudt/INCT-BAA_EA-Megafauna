@@ -25,33 +25,83 @@ df_turtles_spp <- readxl::read_excel("./data-raw/tartarugas_UNIFICADO.xlsx", she
 
 # colnames(df_turtles_bib)
 
-length(unique(df_turtles_bib$Number)) ## All good
+### ---
+length(unique(df_turtles_bib$Number)) ## -- All good
 
-length(unique(df_turtles_bib$Citation)) ## Some citations are repeated -- check
+### ---
+length(unique(df_turtles_bib$Citation)) 
+## -- Some citations are repeated, but it's all good
 
+# multiple_citations <- 
+#   df_turtles_bib %>% 
+#   dplyr::group_by(Citation) %>% 
+#   dplyr::summarise(n = n()) %>% 
+#   dplyr::filter(n > 1) %>% 
+#   dplyr::pull(Citation)
+# 
+# tmp <- 
+#   df_turtles_bib %>% 
+#   dplyr::filter(Citation %in% multiple_citations) %>% 
+#   dplyr::select(Number, Citation, Title)
+# 
+# length(unique(tmp$Number)); length(unique(tmp$Title))
+# rm(tmp, multiple_citations)
+
+### --- 
 unique(df_turtles_bib$Source)
-View(filter(df_turtles_bib, Source == "Snowballing")) ## 7 cases without specific ref from 'Snowballing' -- do we need to worry about this?
+# View(dplyr::filter(df_turtles_bib, Source == "Snowballing")) 
+## -- 7 cases without specific ref from 'Snowballing' 
+## -- Do we need to worry about this? Probably not
 
+### ---
 length(unique(df_turtles_bib$Title)) ## All good
 
-plyr::count(df_turtles_bib$Publication_type) ## "Master Thesis" and "Thesis" -- check
+### ---
+plyr::count(df_turtles_bib$Publication_type) 
+## --"Master Thesis" (n = 1) and "Thesis" (n = 1)
+## -- Remove those 
 
-plyr::count(is.na(df_turtles_bib$Journal_Institution)) ## All good
+IDs_to_rm <- ## Create this vector now and add 'Number' (ID) as needed to be removed later on
+  df_turtles_bib %>% 
+  dplyr::filter(Publication_type %in% c("Master Thesis", "Thesis")) %>% 
+  dplyr::pull(Number)
+
+### ---
+plyr::count(is.na(df_turtles_bib$Journal_Institution)) ## -- All good
 # head(dplyr::arrange(plyr::count(df_turtles_bib$Journal_Institution), dplyr::desc(freq)), n = 15)
 
-plyr::count(df_turtles_bib$Journal_scope) ## All good
+### ---
+plyr::count(df_turtles_bib$Journal_scope) ## -- All good
 
-plyr::count(df_turtles_bib$Language) ## "English | Spanish" -- check
+### ---
+plyr::count(df_turtles_bib$Language) 
+## "English | Spanish" -- All good, it is actually written in two languages
 
-plyr::count(df_turtles_bib$Realm) ## All good
+# tmp <- 
+#   df_turtles_bib %>% 
+#   dplyr::filter(Language == "English | Spanish")
+# 
+# rm(tmp)
 
-plyr::count(df_turtles_bib$Federal_states) ## 6 "NA" -- check 
-plyr::count(is.na(df_turtles_bib$Federal_states)) ## >>>> not showing up as 'NA', prob because it's as.character
+### ---
+plyr::count(df_turtles_bib$Realm) ## -- All good
 
-plyr::count(df_turtles_bib$Ecological_scale) ## All good
+### ---
+plyr::count(df_turtles_bib$Federal_states) ## 6 "NA" -- check...
 
-plyr::count(df_turtles_bib$Time_scale) ## 49 "NA" -- check
+# tmp <-
+#   df_turtles_bib %>%
+#   dplyr::filter(Federal_states == "NA")
+# 
+# rm(tmp)
 
+### ---
+plyr::count(df_turtles_bib$Ecological_scale) ## -- All good
+
+### ---
+plyr::count(df_turtles_bib$Time_scale) ## 49 "NA" -- check...
+
+### ---
 plyr::count(df_turtles_bib$Primary_theme)
 dplyr::arrange(plyr::count(df_turtles_bib$Primary_theme), dplyr::desc(freq))  ## OK -- but... 
                       ## ...check classifications e.g.: 
@@ -62,22 +112,35 @@ dplyr::arrange(plyr::count(df_turtles_bib$Primary_theme), dplyr::desc(freq))  ##
                           ## "Ecological modeling" (what's this? could be under any class?)
                           ## "Climate change" (could be under other themes?)
 
+### ---
 plyr::count(df_turtles_bib$Secondary_theme)
 dplyr::arrange(plyr::count(df_turtles_bib$Secondary_theme), dplyr::desc(freq))  ## OK -- but... same as above
 
+### ---
 plyr::count(df_turtles_bib$Anthropogenic_threats) ## Seems OK but have to understand what this column means
 
+### ---
 unique(df_turtles_bib$Conservation_Unity) ## Check "Y" -- but also need to understand what this column means
 
-plyr::count(df_turtles_bib$Georeferencing_data) ## All good
+### ---
+plyr::count(df_turtles_bib$Georeferencing_data) ## -- All good
 
-plyr::count(df_turtles_bib$Data_availability) ## All good
+### ---
+plyr::count(df_turtles_bib$Data_availability) ## -- All good
 
-plyr::count(df_turtles_bib$Database) ## All good
+### ---
+plyr::count(df_turtles_bib$Database) ## -- All good
 
-length(unique(df_turtles_bib$Reference)) ## All good
+length(unique(df_turtles_bib$Reference)) ## -- All good
 
 # -------------- Check what "GT*_" cols mean
+
+### --- Remove IDs identified to be removed
+df_turtles_bib <-
+  df_turtles_bib %>% 
+  dplyr::filter(! Number %in% IDs_to_rm)
+
+write.csv2(df_turtles_bib, "./data-processed/bib_sea-turtles.csv", row.names = FALSE)
 
 ## -------------------------------------------------------------------------- ##
 ## --------------------------- df_turtles_spp ------------------------------- ##
@@ -146,6 +209,121 @@ df_birds_spp <- readxl::read_excel("./data-raw/aves_UNIFICADO.xlsx", sheet = 2)
 ## ----------------------------- df_birds_bib ------------------------------- ##
 ## -------------------------------------------------------------------------- ##
 
+# colnames(df_turtles_bib)
+
+### ---
+length(unique(df_birds_bib$Number)) ## -- All good
+
+### ---
+length(unique(df_birds_bib$Citation)) 
+## -- Some citations are repeated, but it's all good
+
+# multiple_citations <-
+#   df_birds_bib %>%
+#   dplyr::group_by(Citation) %>%
+#   dplyr::summarise(n = n()) %>%
+#   dplyr::filter(n > 1) %>%
+#   dplyr::pull(Citation)
+# 
+# tmp <-
+#   df_birds_bib %>%
+#   dplyr::filter(Citation %in% multiple_citations) %>%
+#   dplyr::select(Number, Citation, Title)
+# 
+# length(unique(tmp$Number)); length(unique(tmp$Title))
+# rm(tmp, multiple_citations)
+
+### --- 
+unique(df_birds_bib$Source)
+# View(dplyr::filter(df_birds_bib, Source == "Snowballing")) 
+## -- 1 case without specific ref from 'Snowballing' 
+## -- Do we need to worry about this? Probably not
+
+# View(dplyr::filter(df_birds_bib, Source == "NA")) 
+## -- 1 case without source specified as "NA"
+## -- Do we need to worry about this? Probably not
+
+### ---
+length(unique(df_birds_bib$Title)) ## -- All good
+
+### ---
+plyr::count(df_birds_bib$Publication_type) 
+## --"Master Thesis" (n = 1) and "Thesis" (n = 1)
+## -- Remove those 
+
+# View(dplyr::filter(df_birds_bib, Publication_type == "Master Thesis"))
+
+# View(dplyr::filter(df_birds_bib, Publication_type == "Report")) ## -- These are 'Papers', so fix them:
+df_birds_bib[!is.na(df_birds_bib$Publication_type) & df_birds_bib$Publication_type == "Report", ]$Publication_type <- "Paper"
+
+IDs_to_rm <- ## Create this vector now and add 'Number' (ID) as needed to be removed later on
+  df_birds_bib %>% 
+  dplyr::filter(Publication_type %in% c("Master Thesis")) %>% 
+  dplyr::pull(Number)
+
+### ---
+plyr::count(is.na(df_birds_bib$Journal_Institution)) ## -- All good
+# head(dplyr::arrange(plyr::count(df_turtles_bib$Journal_Institution), dplyr::desc(freq)), n = 15)
+
+### ---
+plyr::count(df_birds_bib$Journal_scope) ## -- All good
+
+### ---
+plyr::count(df_birds_bib$Language) 
+## "English | Spanish" -- All good, it is actually written in two languages
+
+### ---
+plyr::count(df_birds_bib$Realm) ## -- All good
+
+### ---
+plyr::count(df_birds_bib$Federal_states) ## 6 "NA" -- check...
+
+# tmp <-
+#   df_birds_bib %>%
+#   dplyr::filter(Federal_states == "NA")
+# 
+# rm(tmp)
+
+### ---
+plyr::count(df_birds_bib$Ecological_scale) ## -- All good
+
+### ---
+plyr::count(df_birds_bib$Time_scale) ## -- 49 "NA" -- check...
+
+### ---
+plyr::count(df_birds_bib$Primary_theme)
+dplyr::arrange(plyr::count(df_birds_bib$Primary_theme), dplyr::desc(freq))  ## -- All good
+
+### ---
+plyr::count(df_birds_bib$Secondary_theme)
+dplyr::arrange(plyr::count(df_birds_bib$Secondary_theme), dplyr::desc(freq))  ## -- All good
+
+### ---
+plyr::count(df_birds_bib$Anthropogenic_threats) ## Seems OK but have to understand what this column means (see "NA"s)
+
+### ---
+unique(df_birds_bib$Conservation_Unity) ## Check "N" -- but also need to understand what this column means
+
+### ---
+plyr::count(df_birds_bib$Georeferencing_data) ## -- All good
+
+### ---
+plyr::count(df_birds_bib$Data_availability) ## -- All good
+
+### ---
+plyr::count(df_birds_bib$Database) ## -- All good
+
+### ---
+length(unique(df_birds_bib$Reference)) ## -- All good
+
+# -------------- Check what "GT*_" cols mean
+
+### --- Remove IDs identified to be removed
+df_birds_bib <-
+  df_birds_bib %>% 
+  dplyr::filter(! Number %in% IDs_to_rm)
+
+write.csv2(df_birds_bib, "./data-processed/bib_seabirds.csv", row.names = FALSE)
 
 ## -------------------------------------------------------------------------- ##
 ## ----------------------------- df_birds_spp ------------------------------- ##
@@ -173,6 +351,131 @@ df_mammals_spp <- readxl::read_excel("./data-raw/mamiferos_UNIFICADO.xlsx", shee
 ## --------------------------- df_mammals_bib ------------------------------- ##
 ## -------------------------------------------------------------------------- ##
 
+# colnames(df_mammals_bib)
+
+### ---
+length(unique(df_mammals_bib$Number)) ## -- All good
+
+### ---
+length(unique(df_mammals_bib$Citation)) 
+## -- Some citations are repeated, but it's all good
+
+# multiple_citations <-
+#   df_mammals_bib %>%
+#   dplyr::group_by(Citation) %>%
+#   dplyr::summarise(n = n()) %>%
+#   dplyr::filter(n > 1) %>%
+#   dplyr::pull(Citation)
+# 
+# tmp <-
+#   df_mammals_bib %>%
+#   dplyr::filter(Citation %in% multiple_citations) %>%
+#   dplyr::select(Number, Citation, Title)
+# 
+# length(unique(tmp$Number)); length(unique(tmp$Title))
+# rm(tmp, multiple_citations)
+
+### --- 
+unique(df_mammals_bib$Source)
+# View(dplyr::filter(df_mammals_bib, Source == "Snowballing")) 
+## -- 3 case without specific ref from 'Snowballing' 
+## -- Do we need to worry about this? Probably not
+
+### ---
+length(unique(df_mammals_bib$Title)) ## -- All good
+
+### ---
+plyr::count(df_mammals_bib$Publication_type) 
+## --"Master Thesis" (n = 1) and "Thesis" (n = 1)
+## -- Remove those 
+
+# View(dplyr::filter(df_mammals_bib, Publication_type == "Master Thesis"))
+# View(dplyr::filter(df_mammals_bib, Publication_type == "Thesis"))
+
+# View(dplyr::filter(df_mammals_bib, Publication_type == "Report")) 
+## -- These are all from 'Reports of the International Whaling Commission'; shall we consider them as 'Paper'?
+# df_mammals_bib[!is.na(df_mammals_bib$Publication_type) & df_mammals_bib$Publication_type == "Report", ]$Publication_type <- "Paper"
+
+IDs_to_rm <- ## Create this vector now and add 'Number' (ID) as needed to be removed later on
+  df_mammals_bib %>% 
+  dplyr::filter(Publication_type %in% c("Master Thesis", "Thesis")) %>% 
+  dplyr::pull(Number)
+
+### ---
+plyr::count(is.na(df_mammals_bib$Journal_Institution)) ## -- All good
+# head(dplyr::arrange(plyr::count(df_mammals_bib$Journal_Institution), dplyr::desc(freq)), n = 15)
+
+### ---
+plyr::count(df_mammals_bib$Journal_scope) ## -- All good
+
+### ---
+plyr::count(df_mammals_bib$Language) 
+## "English | Spanish" -- All good, it is actually written in two languages
+
+### ---
+plyr::count(df_mammals_bib$Realm) ## -- All good
+
+### ---
+plyr::count(df_mammals_bib$Federal_states) ## 31 "NA" -- check...
+
+# tmp <-
+#   df_mammals_bib %>%
+#   dplyr::filter(Federal_states == "NA")
+# 
+# rm(tmp)
+
+### ---
+plyr::count(df_mammals_bib$Ecological_scale) ## -- All good
+
+### ---
+plyr::count(df_mammals_bib$Time_scale) ## -- 148 "NA" -- check...
+
+### ---
+plyr::count(df_mammals_bib$Primary_theme)
+dplyr::arrange(plyr::count(df_mammals_bib$Primary_theme), dplyr::desc(freq))  ## -- All good
+
+### ---
+plyr::count(df_mammals_bib$Secondary_theme)
+dplyr::arrange(plyr::count(df_mammals_bib$Secondary_theme), dplyr::desc(freq))  ## -- All good
+
+### ---
+plyr::count(df_mammals_bib$Anthropogenic_threats) ## Check "N"; Seems OK but have to understand what this column means (see "NA"s)
+
+### ---
+unique(df_mammals_bib$Conservation_Unity) ## Check "N" -- but also need to understand what this column means
+
+### ---
+plyr::count(df_mammals_bib$Georeferencing_data) ## -- All good
+
+### ---
+plyr::count(df_mammals_bib$Data_availability) ## -- All good
+
+### ---
+plyr::count(df_mammals_bib$Database) ## -- All good
+
+### ---
+length(unique(df_mammals_bib$Reference)) ## -- 3 refs that are wrong: check all info
+
+# tmp <-
+#   df_mammals_bib %>% 
+#   dplyr::group_by(Reference) %>% 
+#   dplyr::summarise(n = n()) %>% 
+#   dplyr::filter(n > 1)
+# 
+# tmp2 <-
+#   df_mammals_bib %>% 
+#   dplyr::group_by(Number) %>% 
+#   dplyr::summarise(n = n()) %>% 
+#   dplyr::filter(n > 1)
+
+# -------------- Check what "GT*_" cols mean
+
+### --- Remove IDs identified to be removed
+df_mammals_bib <-
+  df_mammals_bib %>% 
+  dplyr::filter(! Number %in% IDs_to_rm)
+
+write.csv2(df_mammals_bib, "./data-processed/bib_marine-mammals.csv", row.names = FALSE)
 
 ## -------------------------------------------------------------------------- ##
 ## --------------------------- df_mammals_bib ------------------------------- ##
@@ -191,10 +494,11 @@ df_mammals_spp$Latitude <- gsub(pattern = ",",
 
 sf_mammals_spp <- 
   df_mammals_spp %>% 
+  dplyr::filter(Coord_source == "Author") %>% 
   dplyr::mutate(lat = as.numeric(Latitude),
                 lon = as.numeric(Longitude)) %>%
   dplyr::filter(! is.na(lon)) %>%
   dplyr::filter(! is.na(lat)) %>%
   sf::st_as_sf(coords = c("lon", "lat"), crs = 4326)
 
-mapview::mapview(sf_mammals_spp)
+mapview::mapview(sf_mammals_spp, zcol = "Family")

@@ -22,6 +22,62 @@ df_turtles_spp <- read.csv("./data-processed/spp_sea-turtles_meow.csv")
 df_birds_spp <- read.csv("./data-processed/spp_seabirds_meow.csv")
 df_mammals_spp <- read.csv("./data-processed/spp_marine-mammals_meow.csv")
 
+#### ----------- Clean 'turtles' taxonomy
+
+#### ----------- Clean 'birds' taxonomy
+# Filter families
+df_birds_spp <-
+  dplyr::filter(df_birds_spp,
+                Family %in% c("Ardeidae", "Charadriidae", "Chionidae", "Ciconiidae",
+                              "Diomedeidae", "Fregatidae", "Haematopodidae", "Hydrobatidae",
+                              "Laridae", "Oceanitidae", "Pelecanidae", "Phaethontidae",
+                              "Phalacrocoracidae", "Procellariidae", "Scolopacidae", "Spheniscidae",
+                              "Stercorariidae", "Sulidae")) 
+
+# Check 'Species' again
+# unique(df_birds_spp$Species) ## ---------- Need to check this further
+
+df_birds_spp <-
+  df_birds_spp %>% 
+  dplyr::filter(! Species %in% c("NA", "Ciconia maguari", "Gallinago paraguaiae", "Syrigma sibilatrix",
+                                 "Ardeola ralloides", "Ixobrychus involucris", "Hybrid", 
+                                 "Cochlearius cochlearius", "Jabiru mycteria", "Ixobrychus exilis",
+                                 "Agamia agami", "Mycteria americana")) %>% 
+  dplyr::filter(! stringr::str_detect(string = Species, pattern = "sp."))
+
+#### ----------- Clean 'mammals' taxonomy
+# Filter families
+df_mammals_spp <-
+  df_mammals_spp %>% 
+  dplyr::filter(! Order %in% c("Chiroptera", "Didelphimorphia", "Lagomorpha", 
+                               "Pilosa", "Rodentia")) 
+
+# unique(df_mammals_spp$Family) # Still many to remove -- "Odontoceti" is not 'Family'...
+df_mammals_spp <-
+  df_mammals_spp %>% 
+  dplyr::filter(! Family %in% c("Bovidae", "Canidae", "Cervidae", "Dasypodidae",
+                                "Felidae", "Mephitidae", "Procyonidae", "Suidae"))
+
+# Check 'Species' again
+# sort(unique(df_mammals_spp$Species)) ## ---------- Need to check this further
+## "Lagenorhynchus cruciger" -- check
+
+## Fix typos
+## undefined sp to "sp."
+df_mammals_spp[df_mammals_spp$Species == "Balaenoptera acutorostrata/bonaerensis", ]$Species <- "Balaenoptera sp."
+# subspecies to species
+df_mammals_spp[df_mammals_spp$Species == "Balaenoptera musculus intermedia", ]$Species <- "Balaenoptera musculus"
+
+# Filter
+df_mammals_spp <-
+  df_mammals_spp %>%
+  dplyr::filter(! stringr::str_detect(string = Species, pattern = "sp.")) %>% 
+  dplyr::filter(! stringr::str_detect(string = Species, pattern = "spp.")) %>% 
+  dplyr::filter(! stringr::str_detect(string = Species, pattern = "Hybrid")) %>% 
+  dplyr::filter(! stringr::str_detect(string = Species, pattern = "NA"))
+
+
+#### -------------------------------- # 
 dfs_list <- list(
   spp_turtles = df_turtles_spp,
   spp_seabirds = df_birds_spp,

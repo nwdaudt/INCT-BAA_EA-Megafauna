@@ -7,8 +7,6 @@
 library(plyr)
 library(dplyr)
 library(readxl)
-# library(sf)
-# library(mapview)
 
 ## Sea turtles ####
 
@@ -30,7 +28,7 @@ length(unique(df_turtles_bib$Number)) ## -- All good
 
 ### ---
 length(unique(df_turtles_bib$Citation)) 
-## -- Some citations are repeated, ##............... but it's all good?
+## -- Some citations are repeated, but it's all good
 
 multiple_citations <-
   df_turtles_bib %>%
@@ -159,13 +157,12 @@ View(
 ### ---
 length(unique(df_turtles_bib$Reference)) ## -- 501... But note there is a Title doubled
 
-# tmp <- 
-#   df_turtles_bib %>% 
+# tmp <-
+#   df_turtles_bib %>%
 #   dplyr::filter(grepl(pattern = "Quantifying the morphology of key", x = df_turtles_bib$Title))
 # rm(tmp)
 ### Refs are "different" (pages). This will be fixed once the duplicate ID gets removed
 
-# -------------- Check what "GT*_" cols mean
 
 ### --- Remove IDs identified to be removed
 df_turtles_bib <-
@@ -184,46 +181,89 @@ plyr::count(df_turtles_spp$Kingdom_Domain) ## All good
 plyr::count(df_turtles_spp$Phylum) ## All good
 plyr::count(df_turtles_spp$Class) ## All good
 plyr::count(df_turtles_spp$Order) ## All good
-
 plyr::count(df_turtles_spp$Family) ## All good
-plyr::count(df_turtles_spp$Species) ## --- Check
-                                      # "NA"s
-                                    ## --- Standardise: 
-                                      # Any hybrid as "Hybrid" 
 
-plyr::count(df_turtles_spp$Species_author) ## Fix typo (in "Species", too)
-                                            # Hydrid (Caretta caretta x Eretmochelys imbricata) --> Hybrid (Eretmochelys imbricata x Caretta caretta)
+plyr::count(df_turtles_spp$Species) ## --- Standardise any "Hybrid (sp1 x sp2)" as "Hybrid" later in the code
+plyr::count(df_turtles_spp$Species_author) ## --- See comments below
 
+## Fix typos, and standardise order of spp in 'hybrid (sp1 x sp2)' (in "Species", too)
+    # Hydrid (Caretta caretta x Eretmochelys imbricata) --> Hybrid (Eretmochelys imbricata x Caretta caretta)
+    # Hybrid (Eretmochelys imbricata x Lepidochelysolivacea) --> Hybrid (Eretmochelys imbricata x Lepidochelys olivacea)
+    # Hybrid (Lepidochelys olivacea x Eretmochelys imbricata) --> Hybrid (Eretmochelys imbricata x Lepidochelys olivacea)
+
+# Typo 1 = 
 df_turtles_spp[df_turtles_spp$Species == 
                  "Hydrid (Caretta caretta x Eretmochelys imbricata)", ]$Species <- 
-  "Hybrid (Caretta caretta x Eretmochelys imbricata)"
+  "Hybrid (Eretmochelys imbricata x Caretta caretta)"
 
 df_turtles_spp[df_turtles_spp$Species_author == 
                  "Hydrid (Caretta caretta x Eretmochelys imbricata)", ]$Species_author <- 
-  "Hybrid (Caretta caretta x Eretmochelys imbricata)"
+  "Hybrid (Eretmochelys imbricata x Caretta caretta)"
 
+# Typo 2 = 
+df_turtles_spp[df_turtles_spp$Species == 
+                 "Hybrid (Eretmochelys imbricata x Lepidochelysolivacea)", ]$Species <- 
+  "Hybrid (Eretmochelys imbricata x Lepidochelys olivacea)"
 
+df_turtles_spp[df_turtles_spp$Species_author == 
+                 "Hybrid (Eretmochelys imbricata x Lepidochelysolivacea)", ]$Species_author <- 
+  "Hybrid (Eretmochelys imbricata x Lepidochelys olivacea)"
+
+# Standardise spp's in hybrid = 
+df_turtles_spp[df_turtles_spp$Species == 
+                 "Hybrid (Lepidochelys olivacea x Eretmochelys imbricata)", ]$Species <- 
+  "Hybrid (Eretmochelys imbricata x Lepidochelys olivacea)"
+
+df_turtles_spp[df_turtles_spp$Species_author == 
+                 "Hybrid (Lepidochelys olivacea x Eretmochelys imbricata)", ]$Species_author <- 
+  "Hybrid (Eretmochelys imbricata x Lepidochelys olivacea)"
+
+## Fix in 'Species_author' only
+    # Hybrid ( Eretmochelys imbricata X Caretta caretta) --> Hybrid (Eretmochelys imbricata x Caretta caretta)
+    # Hybrid (Lepidochelys olivacea x Caretta caretta) --> Hybrid (Caretta caretta x Lepidochelys olivacea)
+
+df_turtles_spp[df_turtles_spp$Species_author == 
+                 "Hybrid ( Eretmochelys imbricata X Caretta caretta)", ]$Species_author <- 
+  "Hybrid (Eretmochelys imbricata x Caretta caretta)"
+
+df_turtles_spp[df_turtles_spp$Species_author == 
+                 "Hybrid (Lepidochelys olivacea x Caretta caretta)", ]$Species_author <- 
+  "Hybrid (Caretta caretta x Lepidochelys olivacea)"
+
+# plyr::count(df_turtles_spp$Species); plyr::count(df_turtles_spp$Species_author) ### -- Fixed ;)
+
+### ---
 plyr::count(df_turtles_spp$Ecological_group) ## -- All good
 
+### ---
 View(
   df_turtles_bib %>% 
     tidyr::separate_rows(Habitat, sep = " \\| ") %>%
     dplyr::group_by(Habitat) %>% 
     dplyr::summarise(n = n())
-) ## All good
+) ## Typo -- "Sandybeach" should be "Sandy beach"" --- Fixed by hand ;)
 
+# df_turtles_bib <- 
+#   df_turtles_bib %>%
+#   dplyr::mutate(Habitat = gsub(pattern = "Sandybeach", 
+#                                replacement = "Sandy beach", 
+#                                x = Habitat))
+
+
+### ---
 View(
-  df_turtles_spp %>% 
+  df_turtles_spp %>% ### --- "Data_type" column name was "-ok"..... Fixed below
     tidyr::separate_rows(`-ok`, sep = " \\| ") %>%
     dplyr::group_by(`-ok`) %>% 
     dplyr::summarise(n = n())
 )
-### ------------------------------- "Data_type" column name is "-ok" !!!
+
 df_turtles_spp <-
   df_turtles_spp %>% 
   dplyr::rename(Data_type = `-ok`)
 # colnames(df_turtles_spp)
 
+### ---
 View(
   df_turtles_spp %>% 
     tidyr::separate_rows(Date_year, sep = " \\| ") %>%
@@ -231,6 +271,7 @@ View(
     dplyr::summarise(n = n())
 ) ## All good
 
+### ---
 View(
   df_turtles_spp %>% 
     tidyr::separate_rows(Date_month, sep = " \\| ") %>%
@@ -238,6 +279,7 @@ View(
     dplyr::summarise(n = n())
 )  ## All good
 
+### ---
 View(
   df_turtles_spp %>% 
     tidyr::separate_rows(Date_day, sep = " \\| ") %>%
@@ -245,6 +287,7 @@ View(
     dplyr::summarise(n = n())
 )  ## All good
 
+### --- 
 View(
   df_turtles_spp %>% 
     tidyr::separate_rows(Federal_states, sep = " \\| ") %>%
@@ -288,13 +331,12 @@ write.csv2(df_turtles_spp, "./data-processed/spp_sea-turtles.csv", row.names = F
 
 df_birds_bib <- readxl::read_excel("./data-raw/INCT-BAA_FINAL_11_AvesMarinhas_ok.xlsx", sheet = 1)
 df_birds_spp <- readxl::read_excel("./data-raw/INCT-BAA_FINAL_11_AvesMarinhas_ok.xlsx", sheet = 2)
-# colnames(df_birds_spp) ## --- 4 columns are repeated... CHECK
 
 ## -------------------------------------------------------------------------- ##
 ## ----------------------------- df_birds_bib ------------------------------- ##
 ## -------------------------------------------------------------------------- ##
 
-# colnames(df_turtles_bib)
+# colnames(df_birds_bib)
 
 ### ---
 length(unique(df_birds_bib$Number)) ## -- All good
@@ -351,13 +393,13 @@ plyr::count(is.na(df_birds_bib$Journal_Institution)) ## -- All good
 # head(dplyr::arrange(plyr::count(df_birds_bib$Journal_Institution), dplyr::desc(freq)), n = 15)
 
 ## Fix typos
-df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "Plos Computational Biology", ]$Journal_Institution <- "PloS Computational Biology"
-df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "scientific reports", ]$Journal_Institution <- "Scientific Reports"
-df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "Environmental pollution", ]$Journal_Institution <- "Environmental Pollution"
-df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "Bulletin – British Ornithologists' Club", ]$Journal_Institution <- "Bulletin of the British Ornithologists' Club"
-df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "Ocean and Coastal Management", ]$Journal_Institution <- "Ocean & Coastal Management"
-df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "Frontier Marine Science", ]$Journal_Institution <- "Frontier in Marine Science"
-df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "Estuarine Coastal and Shelf Science", ]$Journal_Institution <- "Estuarine, Coastal and Shelf Science"
+df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "PlOs Computational Biology", ]$Journal_Institution <- "PLoS Computational Biology"
+# df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "scientific reports", ]$Journal_Institution <- "Scientific Reports"
+# df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "Environmental pollution", ]$Journal_Institution <- "Environmental Pollution"
+# df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "Bulletin – British Ornithologists' Club", ]$Journal_Institution <- "Bulletin of the British Ornithologists' Club"
+# df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "Ocean and Coastal Management", ]$Journal_Institution <- "Ocean & Coastal Management"
+# df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "Frontier Marine Science", ]$Journal_Institution <- "Frontier in Marine Science"
+# df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "Estuarine Coastal and Shelf Science", ]$Journal_Institution <- "Estuarine, Coastal and Shelf Science"
 # "Elsevier" -- will be removed
 
 ### ---
@@ -408,13 +450,9 @@ View(
     tidyr::separate_rows(Conservation_Unity, sep = " \\| ") %>%
     dplyr::group_by(Conservation_Unity) %>% 
     dplyr::summarise(n = n())
-) ## All good after fixing typos (below) - check UCs nomenclature
+) ## All good 
 
-## Fix typos
-df_birds_bib[!is.na(df_birds_bib$Conservation_Unity) & df_birds_bib$Conservation_Unity == "MONA  Arquipélago das Ilhas Cagarras", ]$Journal_Institution <- "MONA Arquipélago das Ilhas Cagarras"
-df_birds_bib[!is.na(df_birds_bib$Conservation_Unity) & df_birds_bib$Conservation_Unity == "PES Ilha das cobras", ]$Journal_Institution <- "PES Ilha das Cobras"
-
-## Check
+## -------------------------------------------- UCs check
 # MONA ASPSP 'vs' APA de Fernando de Noronha-Rocas-São Pedro e São Paulo 'vs' APA Arquipélago de São Pedro e São Paulo
 # PES da Ilha do Mel 'vs' ESEC Ilha do Mel
 
@@ -432,10 +470,10 @@ View(
     dplyr::summarise(n = n())
 )  ## -- All good
 
+df_birds_bib[df_birds_bib$Database == "Genbank", ]$Database <- "GenBank"
+
 ### ---
 length(unique(df_birds_bib$Reference)) ## -- All good
-
-# -------------- Check what "GT*_" cols mean
 
 ### --- Remove IDs identified to be removed
 df_birds_bib <-
@@ -453,30 +491,19 @@ write.csv2(df_birds_bib, "./data-processed/bib_seabirds.csv", row.names = FALSE)
 plyr::count(df_birds_spp$Kingdom_Domain) ## All good
 plyr::count(df_birds_spp$Phylum) ## All good
 plyr::count(df_birds_spp$Class) ## All good
-
-plyr::count(df_birds_spp$Order) ## --- Need to remove several orders
-plyr::count(df_birds_spp$Family) ## --- Need to remove several families
-plyr::count(df_birds_spp$Species) ## --- Need to remove several species, including "sp."
-
+plyr::count(df_birds_spp$Order) ## --- For analysis, need to remove several orders
+plyr::count(df_birds_spp$Family) ## --- For analysis, need to remove several families
+plyr::count(df_birds_spp$Species) ## --- For analysis, need to remove several species, including "sp."
 plyr::count(df_birds_spp$Species_author) ## There are several typos, but, all 'good'...
-
 plyr::count(df_birds_spp$Ecological_group) ## Check 'Terrestrial' and 'NA'?
 
+### ---
 View(
   df_birds_spp %>% 
     tidyr::separate_rows(Habitat, sep = " \\| ") %>%
     dplyr::group_by(Habitat) %>% 
     dplyr::summarise(n = n())
-) ## --- Typos...
-
-# "Costal laggon" --->> "Costal lagoon"
-
-## Fix it
-df_birds_spp <- 
-  df_birds_spp %>% 
-  dplyr::mutate(Habitat = gsub(pattern = "Costal laggon",
-                               replacement = "Costal lagoon",
-                               x = Habitat))
+) ## All good
 
 View(
   df_birds_spp %>% 
@@ -485,23 +512,15 @@ View(
     dplyr::summarise(n = n())
 ) ## --- Check: 'Tracking' vs 'Satellite'
 
+### ---
 View(
   df_birds_spp %>% 
     tidyr::separate_rows(Date_year, sep = " \\| ") %>%
     dplyr::group_by(Date_year) %>% 
     dplyr::summarise(n = n())
-) ## ---------------------------------------- Typos
+) ## All good
 
-# 1990.1991  2
-# 20011      1
-# 2007 |    39
-# 197        1
-#  2010      1
-#  2011      1
-#  2013     11
-#  2014     11
-#  2019      1
-
+### ---
 View(
   df_birds_spp %>% 
     tidyr::separate_rows(Date_month, sep = " \\| ") %>%
@@ -509,16 +528,17 @@ View(
     dplyr::summarise(n = n())
 ) ## ---All good
 
+### ---
 View(
   df_birds_spp %>% 
     tidyr::separate_rows(Date_day, sep = " \\| ") %>%
     dplyr::group_by(Date_day) %>% 
     dplyr::summarise(n = n())
-) ## ------------------------------------------- Typos
+) ## ----------- Fix by hand -- not sure why the code below is not working...
 
-# 31 |     2
-# 3-7      2
+# df_birds_spp[df_birds_spp$Date_day == "6 |7", ]$Date_day <- "6 | 7"
 
+### ---
 View(
   df_birds_spp %>% 
     tidyr::separate_rows(Federal_states, sep = " \\| ") %>%
@@ -530,29 +550,6 @@ plyr::count(grepl(pattern = ",", x = df_birds_spp$Latitude)) ## --- All good
 plyr::count(grepl(pattern = ",", x = df_birds_spp$Longitude)) ## --- All good
 
 plyr::count(df_birds_spp$Coord_source) ## What's 'NA'?
-
-
-## ----------- Fixing stuff
-
-# Filter families
-df_birds_spp <-
-  dplyr::filter(df_birds_spp,
-                Family %in% c("Ardeidae", "Charadriidae", "Chionidae", "Ciconiidae",
-                              "Diomedeidae", "Fregatidae", "Haematopodidae", "Hydrobatidae",
-                              "Laridae", "Oceanitidae", "Pelecanidae", "Phaethontidae",
-                              "Phalacrocoracidae", "Procellariidae", "Scolopacidae", "Spheniscidae",
-                              "Stercorariidae", "Sulidae")) 
-
-# Check 'Species' again
-# unique(df_birds_spp$Species) ## ---------- Need to check this further
-
-df_birds_spp <-
-  df_birds_spp %>% 
-  dplyr::filter(! Species %in% c("NA", "Ciconia maguari", "Gallinago paraguaiae", "Syrigma sibilatrix",
-                                 "Ardeola ralloides", "Ixobrychus involucris", "Hybrid", 
-                                 "Cochlearius cochlearius", "Jabiru mycteria", "Ixobrychus exilis",
-                                 "Agamia agami", "Mycteria americana")) %>% 
-  dplyr::filter(! stringr::str_detect(string = Species, pattern = "sp."))
 
 ## --- Fix Lat/Lon columns -- no longer needed
 # df_birds_spp$Longitude <- gsub(pattern = ",", 
@@ -622,7 +619,7 @@ plyr::count(df_mammals_bib$Publication_type)
 ## -- Remove those 
 
 # View(dplyr::filter(df_mammals_bib, Publication_type == "Report")) 
-## -- These are all from 'Reports of the International Whaling Commission'; shall we consider them as 'Paper'? I'd say 'yes'
+## -- These are all from 'Reports of the International Whaling Commission' and were peer-reviewed; so, we shall consider them as 'Paper'
 df_mammals_bib[!is.na(df_mammals_bib$Publication_type) & df_mammals_bib$Publication_type == "Report", ]$Publication_type <- "Paper"
 
 IDs_to_rm <- ## Create this vector now and add 'Number' (ID) as needed to be removed later on
@@ -647,7 +644,7 @@ df_mammals_bib[df_mammals_bib$Journal_Institution == "The Journal of Parasitolog
 df_mammals_bib[df_mammals_bib$Journal_Institution == "The Journal of the Acoustical Society of America", ]$Journal_Institution <- "Journal of the Acoustical Society of America"
 df_mammals_bib[df_mammals_bib$Journal_Institution == "Ocean and Coastal Management", ]$Journal_Institution <- "Ocean & Coastal Management"
 ## "Cadernos em Biodiversidade" --- check, isn't it "Cadernos da Biodiversidade"
-## "Deep Sea Research"          --- check, only "Deep Sea Research" seems to be missing a part?
+## "Deep Sea Research"          --- All good
 
 ### ---
 plyr::count(df_mammals_bib$Journal_scope) ## -- All good
@@ -730,14 +727,24 @@ df_mammals_bib[df_mammals_bib$Database == "NIH SRA", ]$Database <- "SRA"
 ### ---
 length(unique(df_mammals_bib$Reference)) ## -- 3 refs that are wrong: check all info
 
-# tmp <-
-#   df_mammals_bib %>%
-#   dplyr::group_by(Reference) %>%
-#   dplyr::summarise(n = n()) %>%
-#   dplyr::filter(n > 1)
+tmp <-
+  df_mammals_bib %>%
+  dplyr::group_by(Reference) %>%
+  dplyr::summarise(n = n()) %>%
+  dplyr::filter(n > 1)
 #### --------------------------------- Need to check these in 'tmp'
 
-# -------------- Check what "GT*_" cols mean
+# Simões-Lopes, 1998 ("10_677") has the wrong Reference and DOI
+df_mammals_bib[df_mammals_bib$Number == "10_677", ]$DOI_ISBN <- "NA"
+df_mammals_bib[df_mammals_bib$Number == "10_677", ]$Reference <- 
+  "Simões-Lopes, P. C. (1998). Intraspecific agonistic behavior of Tursiops truncatus (Cetacea, Delphinidae) during dolphin-human cooperative fishing in southern Brazil. Biotemas, 11(2), 165–171."
+
+# Moura et al., 2016 ("10_148") has the wrong Reference and DOI
+df_mammals_bib[df_mammals_bib$Number == "10_148", ]$DOI_ISBN <- "https://doi.org/10.1371/journal.pone.0146108"
+df_mammals_bib[df_mammals_bib$Number == "10_148", ]$Reference <- 
+  "Moura, J. F., Acevedo-Trejos, E., Tavares, D. C., Meirelles, A. C., Silva, C. P., Oliveira, L. R., Santos, R. A., Wickert, J. C., Machado, R., Siciliano, S. and Merico, A. (2016). Stranding events of Kogia whales along the Brazilian coast. PLoS One, 11(1), e0146108."
+
+# --------------- "Bisi et al., 2012" [wrong] (Number "7_214") has the bib info quite wrong ?
 
 ### --- Remove IDs identified to be removed
 df_mammals_bib <-
@@ -756,29 +763,32 @@ plyr::count(df_mammals_spp$Kingdom_Domain) ## All good
 plyr::count(df_mammals_spp$Phylum) ## All good
 plyr::count(df_mammals_spp$Class) ## All good
 
-plyr::count(df_mammals_spp$Order) ## --- Need to remove several orders
-plyr::count(df_mammals_spp$Family) ## --- Need to remove several families
-plyr::count(df_mammals_spp$Species) ## --- Need to remove several species, including "sp." etc.
+plyr::count(df_mammals_spp$Order) ## --- For analysis, need to remove several orders
+plyr::count(df_mammals_spp$Family) ## --- For analysis, need to remove several families
+
+df_mammals_spp[df_mammals_spp$Family == "Didelhidae", ]$Family <- "Didelphidae"
+
+plyr::count(df_mammals_spp$Species) ## --- For analysis, need to remove several species, including "sp." etc.
 
 plyr::count(df_mammals_spp$Species_author) ## All good
 
 plyr::count(df_mammals_spp$Ecological_group) ## Check 'Terrestrial', 'Benthos' and 'NA'?
 
+### ---
 View(
   df_mammals_spp %>% 
     tidyr::separate_rows(Habitat, sep = " \\| ") %>%
     dplyr::group_by(Habitat) %>% 
     dplyr::summarise(n = n())
-) ## --------------------------------------------- Typo 
-
-# "|Shallow reefs"
-# ------------------------------------- Code below is not working... need to figure it out... 
+) ## Typo -- "|Shallow reefs"
+# --- Code below is not working... need to figure it out... ----- Fixed by hand ;)
 # df_mammals_spp <- 
 #   df_mammals_spp %>% 
 #   dplyr::mutate(Habitat = gsub(pattern = "|Shallow",
 #                                replacement = "| Shallow",
 #                                x = Habitat))
 
+### ---
 View(
   df_mammals_spp %>% 
     tidyr::separate_rows(Data_type, sep = " \\| ") %>%
@@ -786,6 +796,7 @@ View(
     dplyr::summarise(n = n())
 ) ## --- Fix?? 'Fishery' -> 'Fishing'?
 
+### ---
 View(
   df_mammals_spp %>% 
     tidyr::separate_rows(Date_year, sep = " \\| ") %>%
@@ -793,6 +804,7 @@ View(
     dplyr::summarise(n = n())
 ) ## All good
 
+### ---
 View(
   df_mammals_spp %>% 
     tidyr::separate_rows(Date_month, sep = " \\| ") %>%
@@ -800,6 +812,7 @@ View(
     dplyr::summarise(n = n())
 )  ## --- All good
 
+### ---
 View(
   df_mammals_spp %>% 
     tidyr::separate_rows(Date_day, sep = " \\| ") %>%
@@ -807,6 +820,7 @@ View(
     dplyr::summarise(n = n())
 )  ## --- All good
 
+### ---
 View(
   df_mammals_spp %>% 
     tidyr::separate_rows(Federal_states, sep = " \\| ") %>%
@@ -819,39 +833,6 @@ plyr::count(grepl(pattern = ",", x = df_mammals_spp$Longitude)) ## --- All good
 
 plyr::count(df_mammals_spp$Coord_source) ## What's 'NA'?
 
-
-## Clean taxonomy
-
-# Filter families
-df_mammals_spp <-
-  df_mammals_spp %>% 
-  dplyr::filter(! Order %in% c("Chiroptera", "Didelphimorphia", "Lagomorpha", 
-                               "Pilosa", "Rodentia")) 
-
-# unique(df_mammals_spp$Family) # Still many to remove -- "Odontoceti" is not 'Family'...
-df_mammals_spp <-
-  df_mammals_spp %>% 
-  dplyr::filter(! Family %in% c("Bovidae", "Canidae", "Cervidae", "Dasypodidae",
-                                "Felidae", "Mephitidae", "Procyonidae", "Suidae"))
-
-# Check 'Species' again
-# sort(unique(df_mammals_spp$Species)) ## ---------- Need to check this further
-                                       ## "Lagenorhynchus cruciger" -- check
-
-## Fix typos
-## undefined sp to "sp."
-df_mammals_spp[df_mammals_spp$Species == "Balaenoptera acutorostrata/bonaerensis", ]$Species <- "Balaenoptera sp."
-# subspecies to species
-df_mammals_spp[df_mammals_spp$Species == "Balaenoptera musculus intermedia", ]$Species <- "Balaenoptera musculus"
-
-# Filter
-df_mammals_spp <-
-  df_mammals_spp %>%
-  dplyr::filter(! stringr::str_detect(string = Species, pattern = "sp.")) %>% 
-  dplyr::filter(! stringr::str_detect(string = Species, pattern = "spp.")) %>% 
-  dplyr::filter(! stringr::str_detect(string = Species, pattern = "Hybrid")) %>% 
-  dplyr::filter(! stringr::str_detect(string = Species, pattern = "NA"))
- 
 ## --- Fix Lat/Lon columns -- no longer needed
 # df_mammals_spp$Longitude <- gsub(pattern = ",", 
 #                                  replacement = ".",

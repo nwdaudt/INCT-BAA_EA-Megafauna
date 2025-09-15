@@ -3,9 +3,12 @@
 ## Checking format, typos, etc.
 ##
 
+### ----- [NO NEED TO RUN THIS SCRIPT AGAIN]
+
 ## Libraries ####
 library(plyr)
 library(dplyr)
+library(janitor)
 library(readxl)
 
 ## Sea turtles ####
@@ -14,8 +17,11 @@ library(readxl)
 ## ------------------------------ Read data --------------------------------- ##
 ## -------------------------------------------------------------------------- ##
 
-df_turtles_bib <- readxl::read_excel("./data-raw/INCT_BAA_FINAL_08_Tartarugas_ok.xlsx", sheet = 1)
-df_turtles_spp <- readxl::read_excel("./data-raw/INCT_BAA_FINAL_08_Tartarugas_ok.xlsx", sheet = 2)
+df_turtles_bib <- 
+  readxl::read_excel("./data-raw/INCT_BAA_FINAL_08_Tartarugas_ok-Nico.xlsx", sheet = 1) %>% 
+  dplyr::mutate(Accessed_in = janitor::excel_numeric_to_date(as.numeric(Accessed_in)))
+
+df_turtles_spp <- readxl::read_excel("./data-raw/INCT_BAA_FINAL_08_Tartarugas_ok-Nico.xlsx", sheet = 2)
 
 ## -------------------------------------------------------------------------- ##
 ## --------------------------- df_turtles_bib ------------------------------- ##
@@ -45,7 +51,7 @@ tmp <-
 length(unique(tmp$Number)); length(unique(tmp$Title))
 
 # Find duplicates
-tmp2 <- tmp[duplicated(tmp$Title), ] ## Duarte et al 2018 - "Quantifying the morphology of key..."
+tmp2 <- tmp[duplicated(tmp$Title), ]
 
 # Pull 'Numbers' to remove
 IDs_to_rm <-
@@ -76,6 +82,13 @@ IDs_to_rm <- ## Create this vector now and add 'Number' (ID) as needed to be rem
 ### ---
 plyr::count(is.na(df_turtles_bib$Journal_Institution)) ## -- All good
 # head(dplyr::arrange(plyr::count(df_turtles_bib$Journal_Institution), dplyr::desc(freq)), n = 15)
+
+df_turtles_bib[!is.na(df_turtles_bib$Journal_Institution) & df_turtles_bib$Journal_Institution == "The Anatomical Record", ]$Journal_Institution <- "Anatomical Record"
+df_turtles_bib[!is.na(df_turtles_bib$Journal_Institution) & df_turtles_bib$Journal_Institution == "Veterinární medicína", ]$Journal_Institution <- "Veterinární Medicína"
+df_turtles_bib[!is.na(df_turtles_bib$Journal_Institution) & df_turtles_bib$Journal_Institution == "Society for the study of evolution", ]$Journal_Institution <- "Society for the Study of Evolution"
+df_turtles_bib[!is.na(df_turtles_bib$Journal_Institution) & df_turtles_bib$Journal_Institution == "Marine BioDiversity Records", ]$Journal_Institution <- "Marine Biodiversity Records"
+df_turtles_bib[!is.na(df_turtles_bib$Journal_Institution) & df_turtles_bib$Journal_Institution == "Environmental pollution", ]$Journal_Institution <- "Environmental Pollution"
+df_turtles_bib[!is.na(df_turtles_bib$Journal_Institution) & df_turtles_bib$Journal_Institution == "Deep-Sea Research Part I-Oceanographic Research Papers", ]$Journal_Institution <- "Deep-Sea Research Part I"
 
 ### ---
 plyr::count(df_turtles_bib$Journal_scope) ## -- All good
@@ -155,14 +168,7 @@ View(
 ) ## ----------------------------------- Check nomenclature Supp 'material' / 'information' & 'Data on the article itself'
 
 ### ---
-length(unique(df_turtles_bib$Reference)) ## -- 501... But note there is a Title doubled
-
-# tmp <-
-#   df_turtles_bib %>%
-#   dplyr::filter(grepl(pattern = "Quantifying the morphology of key", x = df_turtles_bib$Title))
-# rm(tmp)
-### Refs are "different" (pages). This will be fixed once the duplicate ID gets removed
-
+length(unique(df_turtles_bib$Reference)) ## -- 
 
 ### --- Remove IDs identified to be removed
 df_turtles_bib <-
@@ -252,16 +258,11 @@ View(
 
 ### ---
 View(
-  df_turtles_spp %>% ### --- "Data_type" column name was "-ok"..... Fixed below
-    tidyr::separate_rows(`-ok`, sep = " \\| ") %>%
-    dplyr::group_by(`-ok`) %>% 
+  df_turtles_spp %>% 
+    tidyr::separate_rows(Data_type, sep = " \\| ") %>%
+    dplyr::group_by(Data_type) %>% 
     dplyr::summarise(n = n())
 )
-
-df_turtles_spp <-
-  df_turtles_spp %>% 
-  dplyr::rename(Data_type = `-ok`)
-# colnames(df_turtles_spp)
 
 ### ---
 View(
@@ -329,8 +330,11 @@ write.csv2(df_turtles_spp, "./data-processed/spp_sea-turtles.csv", row.names = F
 ## ------------------------------ Read data --------------------------------- ##
 ## -------------------------------------------------------------------------- ##
 
-df_birds_bib <- readxl::read_excel("./data-raw/INCT-BAA_FINAL_11_AvesMarinhas_ok.xlsx", sheet = 1)
-df_birds_spp <- readxl::read_excel("./data-raw/INCT-BAA_FINAL_11_AvesMarinhas_ok.xlsx", sheet = 2)
+df_birds_bib <- 
+  readxl::read_excel("./data-raw/INCT-BAA_FINAL_11_AvesMarinhas_ok-Nico.xlsx", sheet = 1) %>% 
+  dplyr::mutate(Accessed_in = janitor::excel_numeric_to_date(as.numeric(Accessed_in)))
+
+df_birds_spp <- readxl::read_excel("./data-raw/INCT-BAA_FINAL_11_AvesMarinhas_ok-Nico.xlsx", sheet = 2)
 
 ## -------------------------------------------------------------------------- ##
 ## ----------------------------- df_birds_bib ------------------------------- ##
@@ -393,13 +397,15 @@ plyr::count(is.na(df_birds_bib$Journal_Institution)) ## -- All good
 # head(dplyr::arrange(plyr::count(df_birds_bib$Journal_Institution), dplyr::desc(freq)), n = 15)
 
 ## Fix typos
-df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "PlOs Computational Biology", ]$Journal_Institution <- "PLoS Computational Biology"
+# df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "PlOs Computational Biology", ]$Journal_Institution <- "PLoS Computational Biology"
 # df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "scientific reports", ]$Journal_Institution <- "Scientific Reports"
 # df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "Environmental pollution", ]$Journal_Institution <- "Environmental Pollution"
 # df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "Bulletin – British Ornithologists' Club", ]$Journal_Institution <- "Bulletin of the British Ornithologists' Club"
 # df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "Ocean and Coastal Management", ]$Journal_Institution <- "Ocean & Coastal Management"
 # df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "Frontier Marine Science", ]$Journal_Institution <- "Frontier in Marine Science"
 # df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "Estuarine Coastal and Shelf Science", ]$Journal_Institution <- "Estuarine, Coastal and Shelf Science"
+# df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "The Wilson Journal of Ornithology", ]$Journal_Institution <- "Wilson Journal of Ornithology"
+# df_birds_bib[!is.na(df_birds_bib$Journal_Institution) & df_birds_bib$Journal_Institution == "The Condor", ]$Journal_Institution <- "Condor"
 # "Elsevier" -- will be removed
 
 ### ---
@@ -470,7 +476,7 @@ View(
     dplyr::summarise(n = n())
 )  ## -- All good
 
-df_birds_bib[df_birds_bib$Database == "Genbank", ]$Database <- "GenBank"
+# df_birds_bib[df_birds_bib$Database == "Genbank", ]$Database <- "GenBank"
 
 ### ---
 length(unique(df_birds_bib$Reference)) ## -- All good
@@ -573,8 +579,11 @@ write.csv2(df_birds_spp, "./data-processed/spp_seabirds.csv", row.names = FALSE)
 ## ------------------------------ Read data --------------------------------- ##
 ## -------------------------------------------------------------------------- ##
 
-df_mammals_bib <- readxl::read_excel("./data-raw/INCT_BAA_FINAL_09_10_Mamiferos_ok.xlsx", sheet = 1)
-df_mammals_spp <- readxl::read_excel("./data-raw/INCT_BAA_FINAL_09_10_Mamiferos_ok.xlsx", sheet = 2)
+df_mammals_bib <- 
+  readxl::read_excel("./data-raw/INCT_BAA_FINAL_09_10_Mamiferos_ok-Nico.xlsx", sheet = 1) %>% 
+  dplyr::mutate(Accessed_in = janitor::excel_numeric_to_date(as.numeric(Accessed_in)))
+
+df_mammals_spp <- readxl::read_excel("./data-raw/INCT_BAA_FINAL_09_10_Mamiferos_ok-Nico.xlsx", sheet = 2)
 
 ## -------------------------------------------------------------------------- ##
 ## --------------------------- df_mammals_bib ------------------------------- ##
@@ -608,7 +617,7 @@ rm(tmp, multiple_citations)
 unique(df_mammals_bib$Source)
 # View(dplyr::filter(df_mammals_bib, Source == "Snowballing")) 
 
-df_mammals_bib[df_mammals_bib$Source == "Sowballing: de Moura et al., 2010 (9_137)", ]$Source <- "Snowballing: de Moura et al., 2010 (9_137)"
+# df_mammals_bib[df_mammals_bib$Source == "Sowballing: de Moura et al., 2010 (9_137)", ]$Source <- "Snowballing: de Moura et al., 2010 (9_137)"
 
 ### ---
 length(unique(df_mammals_bib$Title)) ## -- All good
@@ -632,17 +641,17 @@ plyr::count(is.na(df_mammals_bib$Journal_Institution)) ## -- All good
 # sort(unique(df_mammals_bib$Journal_Institution))
 # head(dplyr::arrange(plyr::count(df_mammals_bib$Journal_Institution), dplyr::desc(freq)), n = 15)
 
-df_mammals_bib[df_mammals_bib$Journal_Institution == "Aqua : journal of ichthyology and aquatic biology", ]$Journal_Institution <- "Aqua: Journal of Ichthyology and Aquatic Biology"
-df_mammals_bib[df_mammals_bib$Journal_Institution == "Environmental pollution", ]$Journal_Institution <- "Environmental Pollution"
-df_mammals_bib[df_mammals_bib$Journal_Institution == "holos", ]$Journal_Institution <- "Holos"
-df_mammals_bib[df_mammals_bib$Journal_Institution == "Marine BioDiversity Records", ]$Journal_Institution <- "Marine Biodiversity Records"
-df_mammals_bib[df_mammals_bib$Journal_Institution == "Marine BioDiversity", ]$Journal_Institution <- "Marine Biodiversity"
-df_mammals_bib[df_mammals_bib$Journal_Institution == "Scientific reports", ]$Journal_Institution <- "Scientific Reports"
-df_mammals_bib[df_mammals_bib$Journal_Institution == "The Anatomical Record", ]$Journal_Institution <- "Anatomical Record"
-df_mammals_bib[df_mammals_bib$Journal_Institution == "The Journal of Cetacean Research and Management", ]$Journal_Institution <- "Journal of Cetacean Research and Management"
-df_mammals_bib[df_mammals_bib$Journal_Institution == "The Journal of Parasitology", ]$Journal_Institution <- "Journal of Parasitology"
-df_mammals_bib[df_mammals_bib$Journal_Institution == "The Journal of the Acoustical Society of America", ]$Journal_Institution <- "Journal of the Acoustical Society of America"
-df_mammals_bib[df_mammals_bib$Journal_Institution == "Ocean and Coastal Management", ]$Journal_Institution <- "Ocean & Coastal Management"
+# df_mammals_bib[df_mammals_bib$Journal_Institution == "Aqua : journal of ichthyology and aquatic biology", ]$Journal_Institution <- "Aqua: Journal of Ichthyology and Aquatic Biology"
+# df_mammals_bib[df_mammals_bib$Journal_Institution == "Environmental pollution", ]$Journal_Institution <- "Environmental Pollution"
+# df_mammals_bib[df_mammals_bib$Journal_Institution == "holos", ]$Journal_Institution <- "Holos"
+# df_mammals_bib[df_mammals_bib$Journal_Institution == "Marine BioDiversity Records", ]$Journal_Institution <- "Marine Biodiversity Records"
+# df_mammals_bib[df_mammals_bib$Journal_Institution == "Marine BioDiversity", ]$Journal_Institution <- "Marine Biodiversity"
+# df_mammals_bib[df_mammals_bib$Journal_Institution == "Scientific reports", ]$Journal_Institution <- "Scientific Reports"
+# df_mammals_bib[df_mammals_bib$Journal_Institution == "The Anatomical Record", ]$Journal_Institution <- "Anatomical Record"
+# df_mammals_bib[df_mammals_bib$Journal_Institution == "The Journal of Cetacean Research and Management", ]$Journal_Institution <- "Journal of Cetacean Research and Management"
+# df_mammals_bib[df_mammals_bib$Journal_Institution == "The Journal of Parasitology", ]$Journal_Institution <- "Journal of Parasitology"
+# df_mammals_bib[df_mammals_bib$Journal_Institution == "The Journal of the Acoustical Society of America", ]$Journal_Institution <- "Journal of the Acoustical Society of America"
+# df_mammals_bib[df_mammals_bib$Journal_Institution == "Ocean and Coastal Management", ]$Journal_Institution <- "Ocean & Coastal Management"
 ## "Cadernos em Biodiversidade" --- check, isn't it "Cadernos da Biodiversidade"
 ## "Deep Sea Research"          --- All good
 
@@ -691,11 +700,11 @@ View(
 
 # "Bycacth" 
 # Fix it
-df_mammals_bib <- 
-  df_mammals_bib %>% 
-  dplyr::mutate(Anthropogenic_threats = gsub(pattern = "Bycacth",
-                                             replacement = "Bycatch",
-                                             x = Anthropogenic_threats))
+# df_mammals_bib <- 
+#   df_mammals_bib %>% 
+#   dplyr::mutate(Anthropogenic_threats = gsub(pattern = "Bycacth",
+#                                              replacement = "Bycatch",
+#                                              x = Anthropogenic_threats))
 
 ### ---
 View(
@@ -719,13 +728,17 @@ View(
     dplyr::summarise(n = n())
 ) ## -- Few typos, fix:
 
-df_mammals_bib[df_mammals_bib$Database == "DRYAD", ]$Database <- "Dryad"
-df_mammals_bib[df_mammals_bib$Database == "Genbank", ]$Database <- "GenBank"
-df_mammals_bib[df_mammals_bib$Database == "NCI SRA", ]$Database <- "SRA"
-df_mammals_bib[df_mammals_bib$Database == "NIH SRA", ]$Database <- "SRA"
+# df_mammals_bib[df_mammals_bib$Database == "DRYAD", ]$Database <- "Dryad"
+# df_mammals_bib[df_mammals_bib$Database == "Genbank", ]$Database <- "GenBank"
+# df_mammals_bib[df_mammals_bib$Database == "NCI SRA", ]$Database <- "SRA"
+# df_mammals_bib[df_mammals_bib$Database == "NIH SRA", ]$Database <- "SRA"
 
 ### ---
-length(unique(df_mammals_bib$Reference)) ## -- 3 refs that are wrong: check all info
+length(unique(df_mammals_bib$Reference)) ## CHECK:
+# --------------- "Bisi et al., 2012" [wrong] (Number "7_214") has the bib info quite wrong ?
+## Bisi, T. L., Lepoint, G., de Freitas Azevedo, A., Dorneles, P. R., Flach, L., 
+## Das, K., & Lailson-Brito, J. (2012). Trophic relationships and mercury biomagnification 
+## in Brazilian tropical coastal food webs. Ecological Indicators, 18, 291-302.
 
 tmp <-
   df_mammals_bib %>%
@@ -734,17 +747,16 @@ tmp <-
   dplyr::filter(n > 1)
 #### --------------------------------- Need to check these in 'tmp'
 
-# Simões-Lopes, 1998 ("10_677") has the wrong Reference and DOI
-df_mammals_bib[df_mammals_bib$Number == "10_677", ]$DOI_ISBN <- "NA"
-df_mammals_bib[df_mammals_bib$Number == "10_677", ]$Reference <- 
-  "Simões-Lopes, P. C. (1998). Intraspecific agonistic behavior of Tursiops truncatus (Cetacea, Delphinidae) during dolphin-human cooperative fishing in southern Brazil. Biotemas, 11(2), 165–171."
+# # Simões-Lopes, 1998 ("10_677") has the wrong Reference and DOI
+# df_mammals_bib[df_mammals_bib$Number == "10_677", ]$DOI_ISBN <- "NA"
+# df_mammals_bib[df_mammals_bib$Number == "10_677", ]$Reference <- 
+#   "Simões-Lopes, P. C. (1998). Intraspecific agonistic behavior of Tursiops truncatus (Cetacea, Delphinidae) during dolphin-human cooperative fishing in southern Brazil. Biotemas, 11(2), 165–171."
+# 
+# # Moura et al., 2016 ("10_148") has the wrong Reference and DOI
+# df_mammals_bib[df_mammals_bib$Number == "10_148", ]$DOI_ISBN <- "https://doi.org/10.1371/journal.pone.0146108"
+# df_mammals_bib[df_mammals_bib$Number == "10_148", ]$Reference <- 
+#   "Moura, J. F., Acevedo-Trejos, E., Tavares, D. C., Meirelles, A. C., Silva, C. P., Oliveira, L. R., Santos, R. A., Wickert, J. C., Machado, R., Siciliano, S. and Merico, A. (2016). Stranding events of Kogia whales along the Brazilian coast. PLoS One, 11(1), e0146108."
 
-# Moura et al., 2016 ("10_148") has the wrong Reference and DOI
-df_mammals_bib[df_mammals_bib$Number == "10_148", ]$DOI_ISBN <- "https://doi.org/10.1371/journal.pone.0146108"
-df_mammals_bib[df_mammals_bib$Number == "10_148", ]$Reference <- 
-  "Moura, J. F., Acevedo-Trejos, E., Tavares, D. C., Meirelles, A. C., Silva, C. P., Oliveira, L. R., Santos, R. A., Wickert, J. C., Machado, R., Siciliano, S. and Merico, A. (2016). Stranding events of Kogia whales along the Brazilian coast. PLoS One, 11(1), e0146108."
-
-# --------------- "Bisi et al., 2012" [wrong] (Number "7_214") has the bib info quite wrong ?
 
 ### --- Remove IDs identified to be removed
 df_mammals_bib <-
@@ -766,7 +778,7 @@ plyr::count(df_mammals_spp$Class) ## All good
 plyr::count(df_mammals_spp$Order) ## --- For analysis, need to remove several orders
 plyr::count(df_mammals_spp$Family) ## --- For analysis, need to remove several families
 
-df_mammals_spp[df_mammals_spp$Family == "Didelhidae", ]$Family <- "Didelphidae"
+# df_mammals_spp[df_mammals_spp$Family == "Didelhidae", ]$Family <- "Didelphidae"
 
 plyr::count(df_mammals_spp$Species) ## --- For analysis, need to remove several species, including "sp." etc.
 
@@ -780,13 +792,7 @@ View(
     tidyr::separate_rows(Habitat, sep = " \\| ") %>%
     dplyr::group_by(Habitat) %>% 
     dplyr::summarise(n = n())
-) ## Typo -- "|Shallow reefs"
-# --- Code below is not working... need to figure it out... ----- Fixed by hand ;)
-# df_mammals_spp <- 
-#   df_mammals_spp %>% 
-#   dplyr::mutate(Habitat = gsub(pattern = "|Shallow",
-#                                replacement = "| Shallow",
-#                                x = Habitat))
+) ## All good
 
 ### ---
 View(
@@ -851,4 +857,3 @@ df_mammals_spp <-
   dplyr::filter(! Number %in% IDs_to_rm)
 
 write.csv2(df_mammals_spp, "./data-processed/spp_marine-mammals.csv", row.names = FALSE)
-

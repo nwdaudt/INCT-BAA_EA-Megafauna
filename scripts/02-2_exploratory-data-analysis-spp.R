@@ -3,9 +3,17 @@
 ## Plots and summaries to explore the datasets
 ##
 
+## Misc [not used] ####
+
+# Colour palette
+# manual_cols <- 
+#   palette.colors(palette = "Polychrome 36")[1:length(unique(tmp$Data_type))] %>% 
+#   as.vector()
+
 ## Libraries ####
 library(plyr)
 library(dplyr)
+library(tidyr)
 library(tibble)
 library(forcats)
 library(ggplot2)
@@ -23,9 +31,15 @@ df_birds_spp <- read.csv("./data-processed/spp_seabirds_meow.csv")
 df_mammals_spp <- read.csv("./data-processed/spp_marine-mammals_meow.csv")
 
 #### ----------- Clean 'turtles' taxonomy
+df_turtles_spp <-
+  df_turtles_spp %>% 
+  dplyr::filter(! is.na(Species)) %>% 
+  dplyr::filter(! Species == "Hybrid")
+
+# unique(df_turtles_spp$Species)
 
 #### ----------- Clean 'birds' taxonomy
-# Filter families
+## Filter families
 df_birds_spp <-
   dplyr::filter(df_birds_spp,
                 Family %in% c("Ardeidae", "Charadriidae", "Chionidae", "Ciconiidae",
@@ -34,47 +48,61 @@ df_birds_spp <-
                               "Phalacrocoracidae", "Procellariidae", "Scolopacidae", "Spheniscidae",
                               "Stercorariidae", "Sulidae")) 
 
-# Check 'Species' again
-# unique(df_birds_spp$Species) ## ---------- Need to check this further
-
+## Filter freshwater-associated species and " sp"
 df_birds_spp <-
   df_birds_spp %>% 
   dplyr::filter(! Species %in% c("NA", "Ciconia maguari", "Gallinago paraguaiae", "Syrigma sibilatrix",
                                  "Ardeola ralloides", "Ixobrychus involucris", "Hybrid", 
                                  "Cochlearius cochlearius", "Jabiru mycteria", "Ixobrychus exilis",
                                  "Agamia agami", "Mycteria americana")) %>% 
-  dplyr::filter(! stringr::str_detect(string = Species, pattern = "sp."))
-
-#### ----------- Clean 'mammals' taxonomy
-# Filter families
-df_mammals_spp <-
-  df_mammals_spp %>% 
-  dplyr::filter(! Order %in% c("Chiroptera", "Didelphimorphia", "Lagomorpha", 
-                               "Pilosa", "Rodentia")) 
-
-# unique(df_mammals_spp$Family) # Still many to remove -- "Odontoceti" is not 'Family'...
-df_mammals_spp <-
-  df_mammals_spp %>% 
-  dplyr::filter(! Family %in% c("Bovidae", "Canidae", "Cervidae", "Dasypodidae",
-                                "Felidae", "Mephitidae", "Procyonidae", "Suidae"))
+  dplyr::filter(! stringr::str_detect(string = Species, pattern = " sp"))
 
 # Check 'Species' again
-# sort(unique(df_mammals_spp$Species)) ## ---------- Need to check this further
-## "Lagenorhynchus cruciger" -- check
+# sort(unique(df_birds_spp$Species))
 
-## Fix typos
-## undefined sp to "sp."
+## Still some errors... fix them
+df_birds_spp[df_birds_spp$Species == "Diomedea melanophris", ]$Species <- "Thalassarche melanophris"
+df_birds_spp[df_birds_spp$Species == "Larus atricilla", ]$Species <- "Leucophaeus atricilla"
+df_birds_spp[df_birds_spp$Species == "Larus maculipennis", ]$Species <- "Chroicocephalus maculipennis"
+df_birds_spp[df_birds_spp$Species == "Larus delawerensis", ]$Species <- "Larus delawarensis"
+
+
+## Check:
+# "Ardeidae" & "Ciconiidae"... 
+# "Egretta" spp., "Botaurus pinnatus", "Butorides striata", ...
+
+
+#### ----------- Clean 'mammals' taxonomy
+
+# sort(unique(df_mammals_spp$Order))
+## Filter 'Orders' away
+df_mammals_spp <-
+  df_mammals_spp %>% 
+  dplyr::filter(! Order %in% c("Chiroptera", "Cingulata", "Didelphimorphia", 
+                               "Lagomorpha", "Pilosa", "Rodentia")) 
+
+# sort(unique(df_mammals_spp$Family))
+## Filter 'Families' away
+df_mammals_spp <-
+  df_mammals_spp %>% 
+  dplyr::filter(! Family %in% c("Bovidae", "Canidae", "Cervidae", "Felidae", 
+                                "Procyonidae", "Suidae"))
+
+# sort(unique(df_mammals_spp$Species))
+
+## Fix typos: 
+# an undefined species to "sp."
 df_mammals_spp[df_mammals_spp$Species == "Balaenoptera acutorostrata/bonaerensis", ]$Species <- "Balaenoptera sp."
-# subspecies to species
+# a subspecies to species
 df_mammals_spp[df_mammals_spp$Species == "Balaenoptera musculus intermedia", ]$Species <- "Balaenoptera musculus"
 
 # Filter
 df_mammals_spp <-
   df_mammals_spp %>%
-  dplyr::filter(! stringr::str_detect(string = Species, pattern = "sp.")) %>% 
-  dplyr::filter(! stringr::str_detect(string = Species, pattern = "spp.")) %>% 
-  dplyr::filter(! stringr::str_detect(string = Species, pattern = "Hybrid")) %>% 
-  dplyr::filter(! stringr::str_detect(string = Species, pattern = "NA"))
+  dplyr::filter(! stringr::str_detect(string = Species, pattern = " sp")) %>% 
+  dplyr::filter(! stringr::str_detect(string = Species, pattern = "Hybrid")) %>%
+  dplyr::filter(! is.na(Species))
+  # %>% dplyr::filter(! stringr::str_detect(string = Species, pattern = "NA"))
 
 
 #### -------------------------------- # 
@@ -91,7 +119,7 @@ sf_world <-
   sf::st_transform(4326)
 
 sf_meow <- 
-  sf::read_sf("./data-spatial/MEOW_East-South-America.gpkg") %>% 
+  sf::read_sf("./data-spatial/Brazil_MEOW.gpkg") %>% 
   dplyr::select(ECOREGION, PROVINCE) %>% 
   sf::st_transform(4326)
 
@@ -105,7 +133,7 @@ sf_blue_amazon <-
 
 # plot(sf_blue_amazon)
 
-## Number of studies and species recorded, by Ecoregion ####
+## [-- COME BACK HERE --] Number of studies and species recorded, by Ecoregion ####
 
 ## Get both maps for each megafauna group, patchwork them, save
 for (df in 1:length(dfs_list)) {
@@ -520,6 +548,263 @@ for (df in 1:length(dfs_list)) {
      pcoa_res, tmp_pcoa, plot_pcoa)
 }
 
+
+## Histogram "Data_type" ####
+
+# facet_turtles -- Species
+# facet_birds -- Order
+# facet_mammals -- Family
+
+for (df in 1:length(dfs_list)) {
+  
+  ## Get data.frame name
+  df_name <- names(dfs_list)[df]
+  
+  ## Get data according to data.frame name
+  df <- dfs_list[[df_name]]
+  
+  if(df_name == "spp_turtles"){
+    tmp <- 
+      df %>%
+      # Remove records without any (geospatial) 'source' (hence, missing location...)
+      dplyr::filter(! Coord_source == "NA") %>% 
+      # Split 'Data_type' 
+      tidyr::separate_rows(Data_type, sep = " \\| ") %>% 
+      dplyr::group_by(Species, Data_type) %>% 
+      dplyr::summarise(n = n())
+    
+    plot <- 
+      ggplot(data = tmp,
+             aes(y = n, x = Data_type)) + 
+      geom_bar(stat = "identity", 
+               fill = "lightblue", color = "black", width = 0.7) +
+      xlab("") + ylab("Number of records") + 
+      coord_flip() +
+      facet_wrap(~ Species, ncol = length(unique(tmp$Species)),
+                 scales = "free_x") +
+      theme_bw() +
+      theme(axis.title = element_text(size = 9.5, face = "bold"),
+            axis.text = element_text(size = 9.5),
+            axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+            strip.text = element_text(size = 7.5))
+    
+    ggsave(plot, 
+           filename = paste0("./results/EDA_spp_barplot-data-type_", 
+                             gsub(pattern = "spp_", replacement = "", x = df_name),
+                             ".pdf"),
+           height = 13, width = 20, units = "cm", dpi = 200)
+  }
+  
+  if(df_name == "spp_seabirds"){
+    tmp <- 
+      df %>%
+      # Remove records without any (geospatial) 'source' (hence, missing location...)
+      dplyr::filter(! Coord_source == "NA") %>% 
+      # Split 'Data_type' 
+      tidyr::separate_rows(Data_type, sep = " \\| ") %>% 
+      dplyr::group_by(Order, Data_type) %>% 
+      dplyr::summarise(n = n())
+    
+    plot <- 
+      ggplot(data = tmp,
+             aes(y = n, x = Data_type)) + 
+      geom_bar(stat = "identity", 
+               fill = "lightblue", color = "black", width = 0.7) +
+      xlab("") + ylab("Number of records") + 
+      coord_flip() +
+      facet_wrap(~ Order, ncol = length(unique(tmp$Order)),
+                 scales = "free_x") +
+      theme_bw() +
+      theme(axis.title = element_text(size = 9.5, face = "bold"),
+            axis.text = element_text(size = 9.5),
+            axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+            strip.text = element_text(size = 7.5))
+    
+    ggsave(plot, 
+           filename = paste0("./results/EDA_spp_barplot-data-type_", 
+                             gsub(pattern = "spp_", replacement = "", x = df_name),
+                             ".pdf"),
+           height = 13, width = 22, units = "cm", dpi = 200)
+  }
+  
+  if(df_name == "spp_mammals"){
+    tmp <- 
+      df %>%
+      # Remove records without any (geospatial) 'source' (hence, missing location...)
+      dplyr::filter(! Coord_source == "NA") %>% 
+      # Split 'Data_type' 
+      tidyr::separate_rows(Data_type, sep = " \\| ") %>% 
+      dplyr::group_by(Family, Data_type) %>% 
+      dplyr::summarise(n = n())
+    
+    plot <- 
+      ggplot(data = tmp,
+             aes(y = n, x = Data_type)) + 
+      geom_bar(stat = "identity", 
+               fill = "lightblue", color = "black", width = 0.7) +
+      xlab("") + ylab("Number of records") + 
+      coord_flip() +
+      facet_wrap(~ Family, ncol = length(unique(tmp$Family)),
+                 scales = "free_x") +
+      theme_bw() +
+      theme(axis.title = element_text(size = 9.5, face = "bold"),
+            axis.text = element_text(size = 9.5),
+            axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+            strip.text = element_text(size = 7.5))
+    
+    ggsave(plot, 
+           filename = paste0("./results/EDA_spp_barplot-data-type_", 
+                             gsub(pattern = "spp_", replacement = "", x = df_name),
+                             ".pdf"),
+           height = 13, width = 35, units = "cm", dpi = 200)
+  }
+  
+  ## Clean environment
+  rm(df, df_name, tmp, plot)
+}
+
+## Maps "Data_type" ####
+
+# facet_turtles -- Species
+# facet_birds -- Order
+# facet_mammals -- Family
+
+for (df in 1:length(dfs_list)) {
+  
+  ## Get data.frame name
+  df_name <- names(dfs_list)[df]
+  
+  ## Get data according to data.frame name
+  df <- dfs_list[[df_name]]
+  
+  tmp <- 
+    df %>%
+    # Remove records without any (geospatial) 'source' (hence, missing location...)
+    dplyr::filter(! Coord_source == "NA") %>% 
+    # Split 'Data_type' 
+    tidyr::separate_rows(Data_type, sep = " \\| ") %>% 
+    # Transform 'df' to 'sf' 
+    sf::st_as_sf(coords = c("Longitude", "Latitude"), crs = 4326)
+  
+  ## Get the 5-most recorded 'Data_type' and transform other categories into 'Other'
+  vec <- 
+    tmp %>% 
+    dplyr::group_by(Data_type) %>% 
+    dplyr::summarise(n = n()) %>% 
+    dplyr::arrange(desc(n)) %>% 
+    dplyr::filter(! Data_type == "Stranding") %>% 
+    head(5) %>% 
+    dplyr::pull(Data_type)
+  
+  tmp <-
+    tmp %>% 
+    dplyr::mutate(Data_type2 = 
+                    case_when(! (Data_type %in% vec) ~ "Other",
+                              .default = Data_type)) %>% 
+    dplyr::filter(! Data_type2 == "Other")
+  
+  if(df_name == "spp_turtles"){
+    plot <- 
+      ggplot() + 
+      geom_sf(data = sf_blue_amazon, fill = "lightblue", color = "lightblue", alpha = 0.2) +
+      geom_sf(data = sf_world, fill = "grey80", colour = "grey70") +
+      geom_sf(data = sf_brazil, fill = "grey65", colour = "grey20") +
+      geom_sf(data = tmp, 
+              aes(colour = as.factor(Data_type2),
+                  shape = as.factor(Coord_source)),
+              size = 1, alpha = 0.7) +
+      scale_color_brewer(palette = "Dark2") +
+      facet_wrap(~ Species, nrow = 2) + 
+      coord_sf(xlim = c(-60, -20), ylim = c(-37, 7)) +
+      theme_bw() +
+      theme(
+        legend.position       = "bottom",
+        legend.direction      = "horizontal", 
+        legend.title          = element_text(size = 8),
+        legend.text           = element_text(size = 8),
+        legend.justification  = "center",
+        axis.title = element_blank()
+      ) + 
+      guides(colour = guide_legend(title = "Data type", nrow = 2, byrow = TRUE),
+             shape = guide_legend(title = "Coord. source", nrow = 2, byrow = TRUE))
+    
+    ggsave(plot, 
+           filename = paste0(#"./results/EDA_spp_maps-data-type_", 
+                              "./results/EDA_spp_maps-top5-data-type_", 
+                             gsub(pattern = "spp_", replacement = "", x = df_name),
+                             ".pdf"),
+           height = 16, width = 16, units = "cm", dpi = 200)
+  }
+  
+  if(df_name == "spp_seabirds"){
+    plot <- 
+      ggplot() + 
+      geom_sf(data = sf_blue_amazon, fill = "lightblue", color = "lightblue", alpha = 0.2) +
+      geom_sf(data = sf_world, fill = "grey80", colour = "grey70") +
+      geom_sf(data = sf_brazil, fill = "grey65", colour = "grey20") +
+      geom_sf(data = tmp, 
+              aes(colour = as.factor(Data_type2),
+                  shape = as.factor(Coord_source)),
+              size = 1, alpha = 0.7) +
+      scale_color_brewer(palette = "Dark2") +
+      facet_wrap(~ Order, nrow = 2) + 
+      coord_sf(xlim = c(-60, -20), ylim = c(-37, 7)) +
+      theme_bw() +
+      theme(
+        legend.position       = "bottom",
+        legend.direction      = "horizontal", 
+        legend.title          = element_text(size = 8),
+        legend.text           = element_text(size = 8),
+        legend.justification  = "center",
+        axis.title = element_blank()
+      ) + 
+      guides(colour = guide_legend(title = "Data type", nrow = 2, byrow = TRUE),
+             shape = guide_legend(title = "Coord. source", nrow = 2, byrow = TRUE))
+    
+    ggsave(plot, 
+           filename = paste0(#"./results/EDA_spp_maps-data-type_", 
+                              "./results/EDA_spp_maps-top5-data-type_",  
+                             gsub(pattern = "spp_", replacement = "", x = df_name),
+                             ".pdf"),
+           height = 14, width = 16, units = "cm", dpi = 200)
+  }
+  
+  if(df_name == "spp_mammals"){
+    plot <- 
+      ggplot() + 
+      geom_sf(data = sf_blue_amazon, fill = "lightblue", color = "lightblue", alpha = 0.2) +
+      geom_sf(data = sf_world, fill = "grey80", colour = "grey70") +
+      geom_sf(data = sf_brazil, fill = "grey65", colour = "grey20") +
+      geom_sf(data = tmp, 
+              aes(colour = as.factor(Data_type2),
+                  shape = as.factor(Coord_source)),
+              size = 1, alpha = 0.7) +
+      scale_color_brewer(palette = "Dark2") +
+      facet_wrap(~ Family, nrow = 3) + 
+      coord_sf(xlim = c(-60, -20), ylim = c(-37, 7)) +
+      theme_bw() +
+      theme(
+        legend.position       = "bottom",
+        legend.direction      = "horizontal", 
+        legend.title          = element_text(size = 8),
+        legend.text           = element_text(size = 8),
+        legend.justification  = "center",
+        axis.title = element_blank()
+      ) + 
+      guides(colour = guide_legend(title = "Data type", nrow = 2, byrow = TRUE),
+             shape = guide_legend(title = "Coord. source", nrow = 2, byrow = TRUE))
+    
+    ggsave(plot, 
+           filename = paste0(#"./results/EDA_spp_maps-data-type_", 
+                              "./results/EDA_spp_maps-top5-data-type_", 
+                             gsub(pattern = "spp_", replacement = "", x = df_name),
+                             ".pdf"),
+           height = 23, width = 25, units = "cm", dpi = 200)
+  }
+  
+  ## Clean environment
+  rm(df, df_name, tmp, vec, plot)
+}
 
 ## Refs that contributed the most for spatialised records #### 
 

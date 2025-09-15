@@ -82,7 +82,8 @@ df_bib_seabirds <-
     .after = Year_5yr
   )
 
-df_bib_mammals <- read.csv2("./data-processed/bib_marine-mammals.csv") %>% 
+df_bib_mammals <- 
+  read.csv2("./data-processed/bib_marine-mammals.csv") %>% 
   dplyr::mutate(Year_5yr = case_when(
     Year >= 1951 & Year <= 1955 ~ "1951-1955",
     Year >= 1956 & Year <= 1960 ~ "1956-1960",
@@ -897,6 +898,94 @@ for (df in 1:length(dfs_list)) {
   rm(df, df_name, tmp, tmp2, plot)
 }
 
+## 7.2) Spatial_scale, Time_scale (Barplots - stack [N]) ####
+
+# Spatial - inferno
+for (df in 1:length(dfs_list)) {
+  
+  ## Get data.frame name
+  df_name <- names(dfs_list)[df]
+  
+  ## Get data according to data.frame name
+  df <- dfs_list[[df_name]]
+  
+  tmp <- 
+    df %>% 
+    dplyr::group_by(Year_5yr, Spatial_scale) %>% 
+    dplyr::summarise(n = n()) %>% 
+    dplyr::filter(! is.na(Spatial_scale)) %>% 
+    dplyr::filter(! is.na(Year_5yr)) %>% 
+    dplyr::mutate(Spatial_scale = factor(Spatial_scale,
+                                         levels = c("Local", "National", 
+                                                    "Regional", "Global")))
+  
+  plot <- 
+    ggplot(data = tmp,
+           aes(y = n, x = Year_5yr)) + 
+    geom_bar(aes(fill = Spatial_scale),
+             position = "stack", stat = "identity") +
+    scale_fill_viridis_d(option = "inferno", name = "") +
+    xlab("") + ylab("") + 
+    theme_bw() +
+    theme(axis.title = element_text(size = 9.5, face = "bold"),
+          axis.text = element_text(size = 9.5),
+          axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+          legend.position = c(0.2, 0.7))
+  
+  ggsave(plot, 
+         filename = paste0("./results/EDA_bib_spatial-scale-5yr-stack_", 
+                           gsub(pattern = "bib_", replacement = "", x = df_name),
+                           ".pdf"),
+         height = 10, width = 22, units = "cm", dpi = 200)
+  
+  ## Clean environment
+  rm(df, df_name, tmp, plot)
+}
+
+# Time - rocket
+for (df in 1:length(dfs_list)) {
+  
+  ## Get data.frame name
+  df_name <- names(dfs_list)[df]
+  
+  ## Get data according to data.frame name
+  df <- dfs_list[[df_name]]
+  
+  tmp <- 
+    df %>% 
+    dplyr::group_by(Year_5yr, Time_scale) %>% 
+    dplyr::summarise(n = n()) %>% 
+    dplyr::filter(! is.na(Time_scale)) %>% 
+    dplyr::filter(! is.na(Year_5yr)) %>% 
+    dplyr::mutate(Time_scale = factor(Time_scale,
+                                      levels = c("Short-term", 
+                                                 "Mid-term", 
+                                                 "Long-term")))
+  
+  
+  plot <- 
+    ggplot(data = tmp,
+           aes(y = n, x = Year_5yr)) + 
+    geom_bar(aes(fill = Time_scale),
+             position = "stack", stat = "identity") +
+    scale_fill_viridis_d(option = "rocket", name = "") +
+    xlab("") + ylab("") + 
+    theme_bw() +
+    theme(axis.title = element_text(size = 9.5, face = "bold"),
+          axis.text = element_text(size = 9.5),
+          axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+          legend.position = c(0.2, 0.8))
+  
+  ggsave(plot, 
+         filename = paste0("./results/EDA_bib_time-scale-5yr-stack_", 
+                           gsub(pattern = "bib_", replacement = "", x = df_name),
+                           ".pdf"),
+         height = 10, width = 22, units = "cm", dpi = 200)
+  
+  ## Clean environment
+  rm(df, df_name, tmp, plot)
+}
+
 ## 8.1) Habitat ####
 
 # tmp <- 
@@ -1215,74 +1304,74 @@ for (df in 1:length(dfs_list)) {
 # summary_bibtex <- summary(results, k = 10, pause = FALSE)
 # print(summary_bibtex)
 
-## Keywords (rethink the need of this one) ####
+## Keywords (rethink the need of this one) [done, but ignore for now] ####
 
-for (df in 1:length(dfs_list)) {
-  
-  ## Get data.frame name
-  df_name <- names(dfs_list)[df]
-  
-  ## Get data according to data.frame name
-  df <- dfs_list[[df_name]]
-  
-  tmp <- 
-    df %>% 
-    dplyr::select(Key.word_1, Key.word_2, Key.word_3, Key.word_4) %>% 
-    tidyr::pivot_longer(cols = everything(),
-                        names_to = "Keyword_N",
-                        values_to = "Keyword") %>% 
-    dplyr::filter(! is.na(Keyword)) %>% 
-    dplyr::mutate(Keyword = tolower(Keyword)) %>% 
-    dplyr::mutate(Keyword = snakecase::to_sentence_case(Keyword)) %>% 
-    dplyr::group_by(Keyword) %>% 
-    dplyr::summarise(n = n()) 
-  
-  if(df_name == "bib_turtles"){
-    tmp <- tmp %>% dplyr::filter(n > 3)
-  }
-  if(df_name == "bib_seabirds"){
-    tmp <- tmp %>% dplyr::filter(n > 4)
-  }
-  if(df_name == "bib_mammals"){
-    tmp <- tmp %>% dplyr::filter(n > 9)
-  }
-  
-  set.seed(1) # For reproducibility
-  if(df_name == "bib_turtles"){
-    plot <- 
-      ggplot(data = tmp, 
-             aes(label = Keyword, size = n)) +
-      geom_text_wordcloud() +
-      labs(caption = "NOTE: n > 3")
-    theme_minimal()
-  }
-  
-  if(df_name == "bib_seabirds"){
-    plot <- 
-      ggplot(data = tmp, 
-             aes(label = Keyword, size = n)) +
-      geom_text_wordcloud() +
-      labs(caption = "NOTE: n > 4")
-    theme_minimal()
-  }
-  
-  if(df_name == "bib_mammals"){
-    plot <- 
-      ggplot(data = tmp, 
-             aes(label = Keyword, size = n)) +
-      geom_text_wordcloud() +
-      labs(caption = "NOTE: n > 9")
-    theme_minimal()
-  }
-  
-  ggsave(plot, 
-         filename = paste0("./results/EDA_bib_keywords_", 
-                           gsub(pattern = "bib_", replacement = "", x = df_name),
-                           ".pdf"),
-         height = 10, width = 10, units = "cm", dpi = 200)
-  
-  ## Clean environment
-  rm(df, df_name, tmp, plot)
-}
+# for (df in 1:length(dfs_list)) {
+# 
+#   ## Get data.frame name
+#   df_name <- names(dfs_list)[df]
+# 
+#   ## Get data according to data.frame name
+#   df <- dfs_list[[df_name]]
+# 
+#   tmp <-
+#     df %>%
+#     dplyr::select(Key.word_1, Key.word_2, Key.word_3, Key.word_4) %>%
+#     tidyr::pivot_longer(cols = everything(),
+#                         names_to = "Keyword_N",
+#                         values_to = "Keyword") %>%
+#     dplyr::filter(! is.na(Keyword)) %>%
+#     dplyr::mutate(Keyword = tolower(Keyword)) %>%
+#     dplyr::mutate(Keyword = snakecase::to_sentence_case(Keyword)) %>%
+#     dplyr::group_by(Keyword) %>%
+#     dplyr::summarise(n = n())
+# 
+#   if(df_name == "bib_turtles"){
+#     tmp <- tmp %>% dplyr::filter(n > 3)
+#   }
+#   if(df_name == "bib_seabirds"){
+#     tmp <- tmp %>% dplyr::filter(n > 4)
+#   }
+#   if(df_name == "bib_mammals"){
+#     tmp <- tmp %>% dplyr::filter(n > 9)
+#   }
+# 
+#   set.seed(1) # For reproducibility
+#   if(df_name == "bib_turtles"){
+#     plot <-
+#       ggplot(data = tmp,
+#              aes(label = Keyword, size = n)) +
+#       geom_text_wordcloud() +
+#       labs(caption = "NOTE: n > 3")
+#     theme_minimal()
+#   }
+# 
+#   if(df_name == "bib_seabirds"){
+#     plot <-
+#       ggplot(data = tmp,
+#              aes(label = Keyword, size = n)) +
+#       geom_text_wordcloud() +
+#       labs(caption = "NOTE: n > 4")
+#     theme_minimal()
+#   }
+# 
+#   if(df_name == "bib_mammals"){
+#     plot <-
+#       ggplot(data = tmp,
+#              aes(label = Keyword, size = n)) +
+#       geom_text_wordcloud() +
+#       labs(caption = "NOTE: n > 9")
+#     theme_minimal()
+#   }
+# 
+#   ggsave(plot,
+#          filename = paste0("./results/EDA_bib_keywords_",
+#                            gsub(pattern = "bib_", replacement = "", x = df_name),
+#                            ".pdf"),
+#          height = 10, width = 10, units = "cm", dpi = 200)
+# 
+#   ## Clean environment
+#   rm(df, df_name, tmp, plot)
+# }
 
 #### ...NEXT? ####
